@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}图书借阅管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">
+                <a href="{{ url_for('index') }}">图书借阅管理系统</a>
+            </h1>
+            <nav class="nav">
+                <a href="{{ url_for('index') }}">首页</a>
+                <a href="{{ url_for('borrow.borrow_page') }}">借阅图书</a>
+                <a href="{{ url_for('borrow.return_page') }}">归还图书</a>
+                <a href="{{ url_for('borrow.records') }}">借阅记录</a>
+                <div class="dropdown">
+                    <a href="#" class="dropbtn">管理</a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('users.list_users') }}">用户管理</a>
+                        <a href="{{ url_for('books.list_books') }}">图书管理</a>
+                        <a href="{{ url_for('categories.list_categories') }}">分类管理</a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <a href="#" class="dropbtn">统计</a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('stats.dashboard') }}">综合看板</a>
+                        <a href="{{ url_for('stats.book_ranking') }}">图书排行</a>
+                        <a href="{{ url_for('stats.category_ranking') }}">分类排行</a>
+                        <a href="{{ url_for('stats.user_ranking') }}">用户排行</a>
+                    </div>
+                </div>
+                {% if session.get('admin_id') %}
+                <span class="admin-badge">管理员: {{ session.get('admin_username') }}</span>
+                <a href="{{ url_for('auth.logout') }}">退出</a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}">管理员登录</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>图书借阅管理系统 &copy; 2024 - 数据库课程实践项目</p>
+        </div>
+    </footer>
+</body>
+</html>

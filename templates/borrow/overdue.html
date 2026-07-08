@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}超期未还{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>超期未还图书</h2>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>记录ID</th>
+            <th>图书</th>
+            <th>用户</th>
+            <th>借阅日期</th>
+            <th>应还日期</th>
+            <th>已超期(天)</th>
+            <th>预估违约金(元)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in records %}
+        <tr class="overdue">
+            <td>{{ r.record_id }}</td>
+            <td>{{ r.book.title }}</td>
+            <td>{{ r.user.name }}</td>
+            <td>{{ r.borrow_date }}</td>
+            <td>{{ r.due_date }}</td>
+            <td>{{ (now().date() - r.due_date).days if now else r.due_date }}</td>
+            <td>{{ '%.2f'|format(r.penalty|float) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7" class="empty">暂无超期记录</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

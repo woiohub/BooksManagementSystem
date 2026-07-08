@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}用户借阅排行{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>用户借阅频度排行</h2>
+    <div class="header-actions">
+        <a href="?top_n=5" class="btn btn-sm {% if top_n == 5 %}btn-primary{% else %}btn-outline{% endif %}">TOP 5</a>
+        <a href="?top_n=10" class="btn btn-sm {% if top_n == 10 %}btn-primary{% else %}btn-outline{% endif %}">TOP 10</a>
+        <a href="?top_n=20" class="btn btn-sm {% if top_n == 20 %}btn-primary{% else %}btn-outline{% endif %}">TOP 20</a>
+    </div>
+</div>
+
+<table class="table">
+    <thead>
+        <tr><th>排名</th><th>用户ID</th><th>姓名</th><th>用户类型</th><th>借阅次数</th></tr>
+    </thead>
+    <tbody>
+        {% for u in user_rank %}
+        <tr>
+            <td><strong>#{{ loop.index }}</strong></td>
+            <td>{{ u.user_id }}</td>
+            <td>{{ u.name }}</td>
+            <td><span class="badge badge-{{ u.user_type }}">{{ u.user_type }}</span></td>
+            <td>{{ u.borrow_count }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty">暂无借阅数据</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

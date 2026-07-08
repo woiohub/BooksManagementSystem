@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}统计看板{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>综合统计看板</h2>
+</div>
+
+<div class="stats-cards">
+    <div class="stat-card">
+        <div class="stat-number">{{ overview.total_books }}</div>
+        <div class="stat-label">馆藏图书</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ overview.total_users }}</div>
+        <div class="stat-label">注册用户</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ overview.active_borrows }}</div>
+        <div class="stat-label">借出中</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ overview.total_borrows }}</div>
+        <div class="stat-label">总借阅量</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ '%.2f'|format(overview.total_penalty) }}</div>
+        <div class="stat-label">总违约金(元)</div>
+    </div>
+    <div class="stat-card {% if overview.overdue_count > 0 %}stat-warning{% endif %}">
+        <div class="stat-number">{{ overview.overdue_count }}</div>
+        <div class="stat-label">超期未还</div>
+    </div>
+</div>
+
+<div class="ranking-section">
+    <h3>图书借阅热度排行 TOP10</h3>
+    <table class="table">
+        <thead>
+            <tr><th>排名</th><th>书名</th><th>作者</th><th>借阅次数</th></tr>
+        </thead>
+        <tbody>
+            {% for b in book_heat %}
+            <tr>
+                <td><strong>#{{ loop.index }}</strong></td>
+                <td>{{ b.title }}</td>
+                <td>{{ b.author or '-' }}</td>
+                <td>{{ b.borrow_count }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="empty">暂无借阅数据</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="ranking-section">
+    <h3>分类借阅排行</h3>
+    <table class="table">
+        <thead>
+            <tr><th>排名</th><th>分类</th><th>借阅次数</th></tr>
+        </thead>
+        <tbody>
+            {% for c in cat_heat %}
+            <tr>
+                <td><strong>#{{ loop.index }}</strong></td>
+                <td>{{ c.cat_name }}</td>
+                <td>{{ c.borrow_count }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="empty">暂无借阅数据</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

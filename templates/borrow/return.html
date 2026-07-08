@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}归还图书{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h2>归还图书</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('borrow.do_return') }}" class="form">
+        <div class="form-group">
+            <label for="record_id">借阅记录ID</label>
+            <input type="number" id="record_id" name="record_id" required placeholder="输入借阅记录ID（如1）">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">确认归还</button>
+        </div>
+    </form>
+    <p class="hint">可在<a href="{{ url_for('borrow.records') }}">借阅记录</a>页面查看所有记录的ID</p>
+</div>
+{% endblock %}

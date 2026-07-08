@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}快速查找{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>快速查找</h2>
+</div>
+
+<div class="search-bar">
+    <form method="GET" class="inline-form">
+        <input type="text" name="q" value="{{ q }}" placeholder="输入书名/作者/ISBN/用户姓名/ID..." style="width:400px">
+        <button type="submit" class="btn btn-primary">搜索</button>
+    </form>
+</div>
+
+{% if q %}
+<div class="results-grid">
+    <div class="result-column">
+        <h3>匹配图书</h3>
+        {% if books %}
+        <table class="table">
+            <thead>
+                <tr><th>ID</th><th>书名</th><th>作者</th><th>可借</th></tr>
+            </thead>
+            <tbody>
+                {% for b in books %}
+                <tr>
+                    <td>{{ b.book_id }}</td>
+                    <td>{{ b.title }}</td>
+                    <td>{{ b.author or '-' }}</td>
+                    <td>{{ b.available_stock }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">未找到匹配图书</p>
+        {% endif %}
+    </div>
+    <div class="result-column">
+        <h3>匹配用户</h3>
+        {% if users %}
+        <table class="table">
+            <thead>
+                <tr><th>ID</th><th>姓名</th><th>类型</th><th>已借</th></tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.user_id }}</td>
+                    <td>{{ u.name }}</td>
+                    <td>{{ u.user_type }}</td>
+                    <td>{{ u.borrowed_count }}/{{ u.max_borrow }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">未找到匹配用户</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}添加用户{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h2>添加用户</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="name">姓名</label>
+            <input type="text" id="name" name="name" required placeholder="请输入用户姓名">
+        </div>
+        <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" name="password" required placeholder="请输入登录密码">
+        </div>
+        <div class="form-group">
+            <label for="user_type">用户类型</label>
+            <select id="user_type" name="user_type" required>
+                <option value="">请选择用户类型</option>
+                {% for ut in user_type_names %}
+                <option value="{{ ut }}">{{ ut }}（可借{{ quotas[ut].max_borrow }}本，期限{{ quotas[ut].days_limit }}天，日违约金{{ quotas[ut].penalty_per_day }}元）</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('users.list_users') }}" class="btn btn-outline">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

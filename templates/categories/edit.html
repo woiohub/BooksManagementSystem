@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}编辑分类{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h2>编辑分类 {{ category.cat_id }}</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label>分类编号</label>
+            <input type="text" value="{{ category.cat_id }}" disabled>
+        </div>
+        <div class="form-group">
+            <label for="cat_name">分类名称 *</label>
+            <input type="text" id="cat_name" name="cat_name" required value="{{ category.cat_name }}">
+        </div>
+        <div class="form-group">
+            <label for="location">馆藏位置</label>
+            <input type="text" id="location" name="location" value="{{ category.location or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="remark">备注</label>
+            <input type="text" id="remark" name="remark" value="{{ category.remark or '' }}">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('categories.list_categories') }}" class="btn btn-outline">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

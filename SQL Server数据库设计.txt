@@ -1,0 +1,678 @@
+1.1 系统概述
+图书借阅管理系统旨在为学校图书馆提供高效、准确的藏书管理与借阅服务。系统需支持图书分类存放、用户分级管理（教师、研究生、本科生）、借阅/归还流程、超期违约金自动计算、库存实时更新以及多维度热度排行榜。
+1.2 实体、属性及联系
+（1）实体与属性
+实体	属性	说明
+图书分类（Category）	分类号（cat_id）、分类名称（cat_name）、存放位置（location）、备注（remark）	采用中国图书分类法，每本书归属唯一分类
+图书（Book）	图书ID（book_id）、ISBN（isbn）、书名（title）、作者（author）、出版社（publisher）、出版年份（pub_year）、分类号（cat_id）、总库存（total_stock）、当前可借数量（available_stock）、图书位置（shelf_location）	每本图书有唯一标识，库存状态动态维护
+用户（User）	用户ID（user_id）、姓名（name）、密码（password）、用户类型（user_type）、最大借阅数（max_borrow）、借阅期限（days_limit）、超期日违约金（penalty_per_day）、已借数量（borrowed_count）、违约金累计（penalty_total）	用户类型（教师/研究生/本科生）直接作为用户属性，借阅配额和违约金标准一并存储，无需单独实体
+借阅记录（BorrowRecord）	记录ID（record_id）、图书ID（book_id）、用户ID（user_id）、借阅日期（borrow_date）、应还日期（due_date）、实际归还日期（return_date）、违约金（penalty）、状态（status：0借出 1已还）	记录每笔借阅的完整生命周期
+管理员（Admin）	管理员ID（admin_id）、用户名（username）、密码（password）	用于系统后台管理
+（2）实体间联系
+•	图书分类 ↔ 图书：一对多（一个分类包含多本图书，一本书只能属于一个分类）。
+•	图书 ↔ 借阅记录：一对多（一本书可被多次借阅，一条记录对应一本书）。
+•	用户 ↔ 借阅记录：一对多（一个用户可有多次借阅记录，一条记录对应一个用户）。
+注：不再有独立的“用户类型”实体，“用户类型”仅是 User 实体的一个属性。
+（3）联系属性
+•	借阅记录中，borrow_date、due_date、return_date、penalty 是借阅关系的属性。
+________________________________________
+二、概念结构设计（ER图）
+以下为ER图核心结构（文字描述，UserType 已移除）：
++-------------+      1       n +-------------+      1       n +-------------+
+|  Category   |<-------------|    Book     |<-------------|BorrowRecord |
++-------------+              +-------------+              +-------------+
+      |                            |                             |
+      |                            |                             |
+      | 1                          | 1                           | n
+      v                            v                             v
++-------------+              +-------------+              +-------------+
+| (类别属性)  |              |  (图书属性) |              |  (用户属性)  |
++-------------+              +-------------+              +-------------+
+                                      |
+                                      | n
+                                      v
+                                 +-------------+
+                                 |    User     |  (包含用户类型、最大借阅数、期限、日违约金等
+
+主要联系说明：
+•	Category (1) —— (n) Book，外键 cat_id
+•	Book (1) —— (n) BorrowRecord，外键 book_id
+•	User (1) —— (n) BorrowRecord，外键 user_id
+________________________________________
+三、逻辑结构设计（关系模型）
+根据ER图转换为关系模式（满足第三范式）：
+•	Category (cat_id, cat_name, location, remark)
+主键：cat_id
+•	Book (book_id, isbn, title, author, publisher, pub_year, cat_id, total_stock, available_stock, shelf_location)
+主键：book_id；外键：cat_id 参照 Category(cat_id)
+•	User (user_id, name, password, user_type, max_borrow, days_limit, penalty_per_day, borrowed_count, penalty_total)
+主键：user_id（无外键，用户类型为直接属性）
+•	BorrowRecord (record_id, book_id, user_id, borrow_date, due_date, return_date, penalty, status)
+主键：record_id；外键：book_id 参照 Book(book_id)；外键：user_id 参照 User(user_id)
+•	Admin (admin_id, username, password)
+主键：admin_id
+________________________________________
+四、物理设计（SQL Server 建表脚本）
+-- 创建数据库（若不存在）
+CREATE DATABASE LibraryManagementSystem;
+GO
+USE LibraryManagementSystem;
+GO
+
+-- 1. 图书分类表
+CREATE TABLE Category (
+    cat_id CHAR(10) PRIMARY KEY,
+    cat_name NVARCHAR(50) NOT NULL,
+    location NVARCHAR(100),
+    remark NVARCHAR(200)
+);
+GO
+
+-- 2. 图书表
+CREATE TABLE Book (
+    book_id INT IDENTITY(1,1) PRIMARY KEY,
+    isbn VARCHAR(20) NOT NULL UNIQUE,
+    title NVARCHAR(200) NOT NULL,
+    author NVARCHAR(100),
+    publisher NVARCHAR(100),
+    pub_year INT,
+    cat_id CHAR(10) NOT NULL FOREIGN KEY REFERENCES Category(cat_id),
+    total_stock INT NOT NULL CHECK (total_stock >= 0),
+    available_stock INT NOT NULL CHECK (available_stock >= 0),
+    shelf_location NVARCHAR(50)
+);
+GO
+
+-- 3. 用户表（用户类型作为直接属性，包含所有配额字段）
+CREATE TABLE [User] (
+    user_id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(50) NOT NULL,
+    password NVARCHAR(50) NOT NULL,
+    user_type NVARCHAR(20) NOT NULL,              -- 例如：教师、研究生、本科生
+    max_borrow INT NOT NULL,                      -- 最大借阅数
+    days_limit INT NOT NULL,                      -- 借阅期限（天）
+    penalty_per_day DECIMAL(10,2) NOT NULL,       -- 超期日违约金
+    borrowed_count INT DEFAULT 0 CHECK (borrowed_count >= 0),
+    penalty_total DECIMAL(10,2) DEFAULT 0
+);
+GO
+
+-- 4. 借阅记录表
+CREATE TABLE BorrowRecord (
+    record_id INT IDENTITY(1,1) PRIMARY KEY,
+    book_id INT NOT NULL FOREIGN KEY REFERENCES Book(book_id),
+    user_id INT NOT NULL FOREIGN KEY REFERENCES [User](user_id),
+    borrow_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    return_date DATE NULL,
+    penalty DECIMAL(10,2) DEFAULT 0,
+    status TINYINT DEFAULT 0 CHECK (status IN (0,1))
+);
+GO
+
+-- 5. 管理员表
+CREATE TABLE Admin (
+    admin_id INT IDENTITY(1,1) PRIMARY KEY,
+    username VARCHAR(30) NOT NULL UNIQUE,
+    password VARCHAR(50) NOT NULL
+);
+GO
+
+-- ========== 插入基础数据 ==========
+
+-- 图书分类
+INSERT INTO Category VALUES
+('TP3', N'计算机技术', N'A区3排', N''),
+('H31', N'英语', N'B区2排', N''),
+('O13', N'数学', N'C区1排', N''),
+('I247', N'小说', N'D区4排', N''),
+('K2', N'历史地理', N'E区5排', N'');
+GO
+
+-- 图书信息（共15本）
+INSERT INTO Book (isbn, title, author, publisher, pub_year, cat_id, total_stock, available_stock, shelf_location)
+VALUES
+('9787111123456', N'数据库系统概念', N'Abraham Silberschatz', N'机械工业出版社', 2020, 'TP3', 5, 5, 'A-01'),
+('9787111123457', N'操作系统导论', N'Remzi Arpaci-Dusseau', N'人民邮电出版社', 2019, 'TP3', 3, 3, 'A-02'),
+('9787111123458', N'计算机网络：自顶向下方法', N'James Kurose', N'高等教育出版社', 2021, 'TP3', 4, 4, 'A-03'),
+('9787111123459', N'算法导论', N'Thomas Cormen', N'机械工业出版社', 2018, 'TP3', 2, 2, 'A-04'),
+('9787111123460', N'新概念英语（4册）', N'L.G. Alexander', N'外语教学与研究出版社', 2015, 'H31', 6, 6, 'B-01'),
+('9787111123461', N'剑桥高级英语语法', N'Martin Hewings', N'商务印书馆', 2017, 'H31', 3, 3, 'B-02'),
+('9787111123462', N'高等数学（上册）', N'同济大学', N'高等教育出版社', 2020, 'O13', 8, 8, 'C-01'),
+('9787111123463', N'线性代数', N'David Lay', N'机械工业出版社', 2019, 'O13', 5, 5, 'C-02'),
+('9787111123464', N'三体（全集）', N'刘慈欣', N'重庆出版社', 2010, 'I247', 4, 4, 'D-01'),
+('9787111123465', N'活着', N'余华', N'作家出版社', 2012, 'I247', 3, 3, 'D-02'),
+('9787111123466', N'明朝那些事儿', N'当年明月', N'中国海关出版社', 2011, 'K2', 5, 5, 'E-01'),
+('9787111123467', N'全球通史', N'L.S. Stavrianos', N'北京大学出版社', 2005, 'K2', 2, 2, 'E-02'),
+('9787111123468', N'机器学习', N'周志华', N'清华大学出版社', 2016, 'TP3', 3, 3, 'A-05'),
+('9787111123469', N'深度学习入门', N'斋藤康毅', N'人民邮电出版社', 2018, 'TP3', 2, 2, 'A-06'),
+('9787111123470', N'经济学原理', N'曼昆', N'北京大学出版社', 2020, 'K2', 4, 4, 'E-03');
+GO
+
+-- 用户信息（教师、研究生、本科生，配额直接存储）
+INSERT INTO [User] (name, password, user_type, max_borrow, days_limit, penalty_per_day, borrowed_count, penalty_total)
+VALUES
+(N'张教师', '123456', N'教师', 20, 60, 0.50, 0, 0),
+(N'李教授', '123456', N'教师', 20, 60, 0.50, 0, 0),
+(N'王研究生', '123456', N'研究生', 15, 45, 0.30, 0, 0),
+(N'赵研究生', '123456', N'研究生', 15, 45, 0.30, 0, 0),
+(N'陈本科生', '123456', N'本科生', 10, 30, 0.20, 0, 0),
+(N'刘本科生', '123456', N'本科生', 10, 30, 0.20, 0, 0),
+(N'孙本科生', '123456', N'本科生', 10, 30, 0.20, 0, 0);
+GO
+
+-- 管理员
+INSERT INTO Admin (username, password) VALUES ('admin', 'admin123');
+GO
+
+-- 借阅记录（先借出，后归还）
+INSERT INTO BorrowRecord (book_id, user_id, borrow_date, due_date, return_date, penalty, status)
+VALUES
+(1, 1, '2026-06-01', '2026-07-31', NULL, 0, 0),
+(2, 3, '2026-06-10', '2026-07-25', NULL, 0, 0),
+(3, 5, '2026-06-15', '2026-07-15', NULL, 0, 0),
+(4, 6, '2026-06-20', '2026-07-20', NULL, 0, 0),
+(5, 2, '2026-06-25', '2026-08-24', NULL, 0, 0),
+(6, 4, '2026-07-01', '2026-08-15', NULL, 0, 0);
+GO
+
+-- 执行归还（触发UPDATE触发器）
+UPDATE BorrowRecord SET return_date = '2026-07-20', status = 1 WHERE record_id = 2;
+UPDATE BorrowRecord SET return_date = '2026-07-18', status = 1 WHERE record_id = 3;
+GO
+五、索引设计
+5.1 索引列表
+索引名	所属表	索引列	类型	设计依据
+idx_book_title	Book	title	非聚集	图书模糊查询（书名）频繁，提升检索速度
+idx_book_cat	Book	cat_id	非聚集	按分类统计图书热度时加速分组
+idx_borrow_user	BorrowRecord	user_id	非聚集	查询用户借阅历史，按用户筛选
+idx_borrow_book	BorrowRecord	book_id	非聚集	统计某本书的借阅次数（热度）
+idx_borrow_date	BorrowRecord	borrow_date, due_date	非聚集	按时间范围统计排行榜、计算超期
+idx_borrow_status	BorrowRecord	status	非聚集	筛选未归还记录
+idx_user_type	User	user_type	非聚集	按用户类型统计借阅频度
+5.2 必要性说明
+•	图书模糊查询（WHERE title LIKE '%关键词%'）如无索引会产生全表扫描，图书表预计万级数据，索引可提升查询效率。
+•	借阅记录表是高频操作表，多条件查询（时间、状态、用户、图书）需合理索引。
+•	热度排行榜需要聚合（COUNT）和分组（GROUP BY book_id），索引 idx_borrow_book 可覆盖查询。
+5.3 创建索引 SQL
+CREATE NONCLUSTERED INDEX idx_book_title ON Book(title);
+CREATE NONCLUSTERED INDEX idx_book_cat ON Book(cat_id);
+CREATE NONCLUSTERED INDEX idx_borrow_user ON BorrowRecord(user_id);
+CREATE NONCLUSTERED INDEX idx_borrow_book ON BorrowRecord(book_id);
+CREATE NONCLUSTERED INDEX idx_borrow_date ON BorrowRecord(borrow_date, due_date);
+CREATE NONCLUSTERED INDEX idx_borrow_status ON BorrowRecord(status);
+CREATE NONCLUSTERED INDEX idx_user_type ON [User](user_type);
+GO
+六、触发器（同时处理 INSERT 和 UPDATE）
+6.1 业务场景
+当在 BorrowRecord 表中插入新借阅记录（借书）或更新 return_date / status（还书）时，自动同步：
+•	更新 Book 表的 available_stock（可借数量）
+•	更新 User 表的 borrowed_count（已借数量）
+•	若还书超期，自动计算违约金并更新到 BorrowRecord.penalty 和 User.penalty_total（直接从 User 表中读取 penalty_per_day，无需关联 UserType）
+6.2 触发器代码
+CREATE TRIGGER trg_BorrowRecord_Sync
+ON BorrowRecord
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 处理 INSERT：新借记录
+    IF EXISTS (SELECT * FROM inserted) AND NOT EXISTS (SELECT * FROM deleted)
+    BEGIN
+        UPDATE b
+        SET b.available_stock = b.available_stock - i.qty
+        FROM Book b
+        INNER JOIN (
+            SELECT book_id, COUNT(*) AS qty
+            FROM inserted
+            GROUP BY book_id
+        ) i ON b.book_id = i.book_id;
+
+        UPDATE u
+        SET u.borrowed_count = u.borrowed_count + i.qty
+        FROM [User] u
+        INNER JOIN (
+            SELECT user_id, COUNT(*) AS qty
+            FROM inserted
+            GROUP BY user_id
+        ) i ON u.user_id = i.user_id;
+    END
+
+    -- 处理 UPDATE：归还操作
+    IF UPDATE(return_date) OR UPDATE(status)
+    BEGIN
+        DECLARE @record_id INT, @book_id INT, @user_id INT;
+        DECLARE @return_date DATE, @due_date DATE, @penalty DECIMAL(10,2);
+
+        DECLARE cur CURSOR FOR
+            SELECT i.record_id, i.book_id, i.user_id, i.return_date, i.due_date
+            FROM inserted i
+            INNER JOIN deleted d ON i.record_id = d.record_id
+            WHERE (i.return_date IS NOT NULL AND d.return_date IS NULL)
+               OR (i.status = 1 AND d.status = 0);
+
+        OPEN cur;
+        FETCH NEXT FROM cur INTO @record_id, @book_id, @user_id, @return_date, @due_date;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            UPDATE Book SET available_stock = available_stock + 1 WHERE book_id = @book_id;
+            UPDATE [User] SET borrowed_count = borrowed_count - 1 WHERE user_id = @user_id;
+
+            IF @return_date > @due_date
+            BEGIN
+                DECLARE @days INT = DATEDIFF(DAY, @due_date, @return_date);
+                DECLARE @per_day DECIMAL(10,2);
+
+                -- 直接从 User 表获取日违约金，无需再关联 UserType
+                SELECT @per_day = penalty_per_day
+                FROM [User]
+                WHERE user_id = @user_id;
+
+                SET @penalty = @days * @per_day;
+                UPDATE BorrowRecord SET penalty = @penalty WHERE record_id = @record_id;
+                UPDATE [User] SET penalty_total = penalty_total + @penalty WHERE user_id = @user_id;
+            END
+
+            FETCH NEXT FROM cur INTO @record_id, @book_id, @user_id, @return_date, @due_date;
+        END;
+
+        CLOSE cur;
+        DEALLOCATE cur;
+    END
+END;
+GO
+七、存储过程（带输入输出参数，包含游标）
+7.1 业务场景
+接收起始日期和结束日期，统计该时间段内各图书的借阅次数，按借阅次数降序输出排行榜。同时，使用游标遍历该时间段内所有超期未还的借阅记录，计算并更新用户违约金（直接从 User 表读取日违约金）。
+7.2 存储过程代码
+CREATE PROCEDURE sp_GetBorrowHeatRanking
+    @start_date DATE,
+    @end_date DATE,
+    @top_n INT = 10,
+    @total_records INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT @total_records = COUNT(*)
+    FROM BorrowRecord
+    WHERE borrow_date BETWEEN @start_date AND @end_date;
+
+    SELECT TOP (@top_n)
+        b.book_id,
+        b.title,
+        COUNT(r.record_id) AS borrow_count
+    FROM Book b
+    INNER JOIN BorrowRecord r ON b.book_id = r.book_id
+    WHERE r.borrow_date BETWEEN @start_date AND @end_date
+    GROUP BY b.book_id, b.title
+    ORDER BY borrow_count DESC;
+
+    DECLARE @rid INT, @uid INT, @due DATE, @today DATE = GETDATE();
+    DECLARE @overdue_days INT, @daily_penalty DECIMAL(10,2), @new_penalty DECIMAL(10,2);
+
+    DECLARE cur_penalty CURSOR FOR
+        SELECT record_id, user_id, due_date
+        FROM BorrowRecord
+        WHERE status = 0
+          AND due_date < @today
+          AND borrow_date BETWEEN @start_date AND @end_date;
+
+    OPEN cur_penalty;
+    FETCH NEXT FROM cur_penalty INTO @rid, @uid, @due;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @overdue_days = DATEDIFF(DAY, @due, @today);
+
+        -- 直接从 User 表获取日违约金
+        SELECT @daily_penalty = penalty_per_day
+        FROM [User]
+        WHERE user_id = @uid;
+
+        SET @new_penalty = @overdue_days * @daily_penalty;
+
+        UPDATE BorrowRecord SET penalty = @new_penalty WHERE record_id = @rid;
+        UPDATE [User] SET penalty_total = penalty_total + @new_penalty WHERE user_id = @uid;
+
+        FETCH NEXT FROM cur_penalty INTO @rid, @uid, @due;
+    END;
+
+    CLOSE cur_penalty;
+    DEALLOCATE cur_penalty;
+END;
+GO
+完整代码：
+-- ============================================================
+-- 数据库名称：LibraryManagementSystem (图书借阅管理系统)
+-- 作    者：数据库设计负责人（角色一）
+-- 版    本：V2.0
+-- 说    明：UserType 已合并至 User 表，无独立实体
+-- ============================================================
+
+USE master;
+GO
+
+-- 一、创建数据库（如果不存在）
+IF DB_ID('LibraryManagementSystem') IS NULL
+BEGIN
+    CREATE DATABASE LibraryManagementSystem;
+END
+GO
+
+USE LibraryManagementSystem;
+GO
+
+-- ============================================================
+-- 二、清理旧对象（按依赖关系逆序删除）
+-- ============================================================
+IF OBJECT_ID('trg_BorrowRecord_Sync', 'TR') IS NOT NULL
+    DROP TRIGGER trg_BorrowRecord_Sync;
+GO
+
+IF OBJECT_ID('sp_GetBorrowHeatRanking', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetBorrowHeatRanking;
+GO
+
+DROP TABLE IF EXISTS BorrowRecord;
+DROP TABLE IF EXISTS [User];
+DROP TABLE IF EXISTS Book;
+DROP TABLE IF EXISTS Category;
+DROP TABLE IF EXISTS Admin;
+GO
+
+-- ============================================================
+-- 三、创建表结构
+-- ============================================================
+
+-- 3.1 图书分类表
+CREATE TABLE Category (
+    cat_id CHAR(10) PRIMARY KEY,
+    cat_name NVARCHAR(50) NOT NULL,
+    location NVARCHAR(100),
+    remark NVARCHAR(200)
+);
+GO
+
+-- 3.2 图书表
+CREATE TABLE Book (
+    book_id INT IDENTITY(1,1) PRIMARY KEY,
+    isbn VARCHAR(20) NOT NULL UNIQUE,
+    title NVARCHAR(200) NOT NULL,
+    author NVARCHAR(100),
+    publisher NVARCHAR(100),
+    pub_year INT,
+    cat_id CHAR(10) NOT NULL FOREIGN KEY REFERENCES Category(cat_id),
+    total_stock INT NOT NULL CHECK (total_stock >= 0),
+    available_stock INT NOT NULL CHECK (available_stock >= 0),
+    shelf_location NVARCHAR(50)
+);
+GO
+
+-- 3.3 用户表（用户类型作为直接属性，包含所有配额字段）
+CREATE TABLE [User] (
+    user_id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(50) NOT NULL,
+    password NVARCHAR(50) NOT NULL,
+    user_type NVARCHAR(20) NOT NULL,              -- 教师、研究生、本科生
+    max_borrow INT NOT NULL,                      -- 最大借阅数
+    days_limit INT NOT NULL,                      -- 借阅期限（天）
+    penalty_per_day DECIMAL(10,2) NOT NULL,       -- 超期日违约金
+    borrowed_count INT DEFAULT 0 CHECK (borrowed_count >= 0),
+    penalty_total DECIMAL(10,2) DEFAULT 0
+);
+GO
+
+-- 3.4 借阅记录表
+CREATE TABLE BorrowRecord (
+    record_id INT IDENTITY(1,1) PRIMARY KEY,
+    book_id INT NOT NULL FOREIGN KEY REFERENCES Book(book_id),
+    user_id INT NOT NULL FOREIGN KEY REFERENCES [User](user_id),
+    borrow_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    return_date DATE NULL,
+    penalty DECIMAL(10,2) DEFAULT 0,
+    status TINYINT DEFAULT 0 CHECK (status IN (0,1))
+);
+GO
+
+-- 3.5 管理员表
+CREATE TABLE Admin (
+    admin_id INT IDENTITY(1,1) PRIMARY KEY,
+    username VARCHAR(30) NOT NULL UNIQUE,
+    password VARCHAR(50) NOT NULL
+);
+GO
+
+-- ============================================================
+-- 四、插入基础数据及测试数据
+-- ============================================================
+
+-- 4.1 图书分类
+INSERT INTO Category VALUES
+('TP3', N'计算机技术', N'A区3排', N''),
+('H31', N'英语', N'B区2排', N''),
+('O13', N'数学', N'C区1排', N''),
+('I247', N'小说', N'D区4排', N''),
+('K2', N'历史地理', N'E区5排', N'');
+GO
+
+-- 4.2 图书信息（共15本）
+INSERT INTO Book (isbn, title, author, publisher, pub_year, cat_id, total_stock, available_stock, shelf_location)
+VALUES
+('9787111123456', N'数据库系统概念', N'Abraham Silberschatz', N'机械工业出版社', 2020, 'TP3', 5, 5, 'A-01'),
+('9787111123457', N'操作系统导论', N'Remzi Arpaci-Dusseau', N'人民邮电出版社', 2019, 'TP3', 3, 3, 'A-02'),
+('9787111123458', N'计算机网络：自顶向下方法', N'James Kurose', N'高等教育出版社', 2021, 'TP3', 4, 4, 'A-03'),
+('9787111123459', N'算法导论', N'Thomas Cormen', N'机械工业出版社', 2018, 'TP3', 2, 2, 'A-04'),
+('9787111123460', N'新概念英语（4册）', N'L.G. Alexander', N'外语教学与研究出版社', 2015, 'H31', 6, 6, 'B-01'),
+('9787111123461', N'剑桥高级英语语法', N'Martin Hewings', N'商务印书馆', 2017, 'H31', 3, 3, 'B-02'),
+('9787111123462', N'高等数学（上册）', N'同济大学', N'高等教育出版社', 2020, 'O13', 8, 8, 'C-01'),
+('9787111123463', N'线性代数', N'David Lay', N'机械工业出版社', 2019, 'O13', 5, 5, 'C-02'),
+('9787111123464', N'三体（全集）', N'刘慈欣', N'重庆出版社', 2010, 'I247', 4, 4, 'D-01'),
+('9787111123465', N'活着', N'余华', N'作家出版社', 2012, 'I247', 3, 3, 'D-02'),
+('9787111123466', N'明朝那些事儿', N'当年明月', N'中国海关出版社', 2011, 'K2', 5, 5, 'E-01'),
+('9787111123467', N'全球通史', N'L.S. Stavrianos', N'北京大学出版社', 2005, 'K2', 2, 2, 'E-02'),
+('9787111123468', N'机器学习', N'周志华', N'清华大学出版社', 2016, 'TP3', 3, 3, 'A-05'),
+('9787111123469', N'深度学习入门', N'斋藤康毅', N'人民邮电出版社', 2018, 'TP3', 2, 2, 'A-06'),
+('9787111123470', N'经济学原理', N'曼昆', N'北京大学出版社', 2020, 'K2', 4, 4, 'E-03');
+GO
+
+-- 4.3 用户信息（教师2人，研究生2人，本科生3人）
+INSERT INTO [User] (name, password, user_type, max_borrow, days_limit, penalty_per_day, borrowed_count, penalty_total)
+VALUES
+(N'张教师', '123456', N'教师', 20, 60, 0.50, 0, 0),
+(N'李教授', '123456', N'教师', 20, 60, 0.50, 0, 0),
+(N'王研究生', '123456', N'研究生', 15, 45, 0.30, 0, 0),
+(N'赵研究生', '123456', N'研究生', 15, 45, 0.30, 0, 0),
+(N'陈本科生', '123456', N'本科生', 10, 30, 0.20, 0, 0),
+(N'刘本科生', '123456', N'本科生', 10, 30, 0.20, 0, 0),
+(N'孙本科生', '123456', N'本科生', 10, 30, 0.20, 0, 0);
+GO
+
+-- 4.4 管理员
+INSERT INTO Admin (username, password) VALUES ('admin', 'admin123');
+GO
+
+-- 4.5 借阅记录（先以"借出中"状态插入）
+INSERT INTO BorrowRecord (book_id, user_id, borrow_date, due_date, return_date, penalty, status)
+VALUES
+(1, 1, '2026-06-01', '2026-07-31', NULL, 0, 0),
+(2, 3, '2026-06-10', '2026-07-25', NULL, 0, 0),
+(3, 5, '2026-06-15', '2026-07-15', NULL, 0, 0),
+(4, 6, '2026-06-20', '2026-07-20', NULL, 0, 0),
+(5, 2, '2026-06-25', '2026-08-24', NULL, 0, 0),
+(6, 4, '2026-07-01', '2026-08-15', NULL, 0, 0);
+GO
+
+-- 4.6 执行归还操作（触发 UPDATE 触发器）
+-- 记录2：按期归还
+UPDATE BorrowRecord SET return_date = '2026-07-20', status = 1 WHERE record_id = 2;
+-- 记录3：超期3天归还（本科生日违约金0.20，应产生0.60元）
+UPDATE BorrowRecord SET return_date = '2026-07-18', status = 1 WHERE record_id = 3;
+GO
+
+-- ============================================================
+-- 五、创建索引
+-- ============================================================
+CREATE NONCLUSTERED INDEX idx_book_title ON Book(title);
+CREATE NONCLUSTERED INDEX idx_book_cat ON Book(cat_id);
+CREATE NONCLUSTERED INDEX idx_borrow_user ON BorrowRecord(user_id);
+CREATE NONCLUSTERED INDEX idx_borrow_book ON BorrowRecord(book_id);
+CREATE NONCLUSTERED INDEX idx_borrow_date ON BorrowRecord(borrow_date, due_date);
+CREATE NONCLUSTERED INDEX idx_borrow_status ON BorrowRecord(status);
+CREATE NONCLUSTERED INDEX idx_user_type ON [User](user_type);
+GO
+
+-- ============================================================
+-- 六、创建触发器（同时处理 INSERT 和 UPDATE）
+-- ============================================================
+CREATE TRIGGER trg_BorrowRecord_Sync
+ON BorrowRecord
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 6.1 处理 INSERT 操作
+    IF EXISTS (SELECT * FROM inserted) AND NOT EXISTS (SELECT * FROM deleted)
+    BEGIN
+        UPDATE b
+        SET b.available_stock = b.available_stock - i.qty
+        FROM Book b
+        INNER JOIN (
+            SELECT book_id, COUNT(*) AS qty
+            FROM inserted
+            GROUP BY book_id
+        ) i ON b.book_id = i.book_id;
+
+        UPDATE u
+        SET u.borrowed_count = u.borrowed_count + i.qty
+        FROM [User] u
+        INNER JOIN (
+            SELECT user_id, COUNT(*) AS qty
+            FROM inserted
+            GROUP BY user_id
+        ) i ON u.user_id = i.user_id;
+    END
+
+    -- 6.2 处理 UPDATE 操作（归还图书）
+    IF UPDATE(return_date) OR UPDATE(status)
+    BEGIN
+        DECLARE @record_id INT, @book_id INT, @user_id INT;
+        DECLARE @return_date DATE, @due_date DATE, @penalty DECIMAL(10,2);
+
+        DECLARE cur CURSOR FOR
+            SELECT i.record_id, i.book_id, i.user_id, i.return_date, i.due_date
+            FROM inserted i
+            INNER JOIN deleted d ON i.record_id = d.record_id
+            WHERE (i.return_date IS NOT NULL AND d.return_date IS NULL)
+               OR (i.status = 1 AND d.status = 0);
+
+        OPEN cur;
+        FETCH NEXT FROM cur INTO @record_id, @book_id, @user_id, @return_date, @due_date;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            UPDATE Book SET available_stock = available_stock + 1 WHERE book_id = @book_id;
+            UPDATE [User] SET borrowed_count = borrowed_count - 1 WHERE user_id = @user_id;
+
+            IF @return_date > @due_date
+            BEGIN
+                DECLARE @days INT = DATEDIFF(DAY, @due_date, @return_date);
+                DECLARE @per_day DECIMAL(10,2);
+
+                -- 直接从 User 表获取日违约金
+                SELECT @per_day = penalty_per_day
+                FROM [User]
+                WHERE user_id = @user_id;
+
+                SET @penalty = @days * @per_day;
+                UPDATE BorrowRecord SET penalty = @penalty WHERE record_id = @record_id;
+                UPDATE [User] SET penalty_total = penalty_total + @penalty WHERE user_id = @user_id;
+            END
+
+            FETCH NEXT FROM cur INTO @record_id, @book_id, @user_id, @return_date, @due_date;
+        END;
+
+        CLOSE cur;
+        DEALLOCATE cur;
+    END
+END;
+GO
+
+-- ============================================================
+-- 七、创建存储过程（含游标）
+-- ============================================================
+CREATE PROCEDURE sp_GetBorrowHeatRanking
+    @start_date DATE,
+    @end_date DATE,
+    @top_n INT = 10,
+    @total_records INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT @total_records = COUNT(*)
+    FROM BorrowRecord
+    WHERE borrow_date BETWEEN @start_date AND @end_date;
+
+    SELECT TOP (@top_n)
+        b.book_id,
+        b.title,
+        COUNT(r.record_id) AS borrow_count
+    FROM Book b
+    INNER JOIN BorrowRecord r ON b.book_id = r.book_id
+    WHERE r.borrow_date BETWEEN @start_date AND @end_date
+    GROUP BY b.book_id, b.title
+    ORDER BY borrow_count DESC;
+
+    DECLARE @rid INT, @uid INT, @due DATE, @today DATE = GETDATE();
+    DECLARE @overdue_days INT, @daily_penalty DECIMAL(10,2), @new_penalty DECIMAL(10,2);
+
+    DECLARE cur_penalty CURSOR FOR
+        SELECT record_id, user_id, due_date
+        FROM BorrowRecord
+        WHERE status = 0
+          AND due_date < @today
+          AND borrow_date BETWEEN @start_date AND @end_date;
+
+    OPEN cur_penalty;
+    FETCH NEXT FROM cur_penalty INTO @rid, @uid, @due;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @overdue_days = DATEDIFF(DAY, @due, @today);
+
+        SELECT @daily_penalty = penalty_per_day
+        FROM [User]
+        WHERE user_id = @uid;
+
+        SET @new_penalty = @overdue_days * @daily_penalty;
+
+        UPDATE BorrowRecord SET penalty = @new_penalty WHERE record_id = @rid;
+        UPDATE [User] SET penalty_total = penalty_total + @new_penalty WHERE user_id = @uid;
+
+        FETCH NEXT FROM cur_penalty INTO @rid, @uid, @due;
+    END;
+
+    CLOSE cur_penalty;
+    DEALLOCATE cur_penalty;
+END;	
+GO
+
+-- ============================================================
+-- 八、验证查询（取消注释即可执行）
+-- ============================================================
+-- 查看图书库存（总库存应为15本总库存之和，可用库存因借出/归还而变化）
+-- SELECT book_id, title, total_stock, available_stock FROM Book ORDER BY book_id;
+
+-- 查看用户已借数量及违约金
+-- SELECT user_id, name, user_type, borrowed_count, penalty_total FROM [User] ORDER BY user_id;
+
+-- 测试存储过程
+-- DECLARE @total INT;
+-- EXEC sp_GetBorrowHeatRanking @start_date = '2026-06-01', @end_date = '2026-07-01', @top_n = 5, @total_records = @total OUTPUT;
+-- PRINT '总借阅记录数: ' + CAST(@total AS VARCHAR);
+-- GO

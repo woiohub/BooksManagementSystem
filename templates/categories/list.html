@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}分类管理{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>图书分类管理</h2>
+    {% if session.get('admin_id') %}
+    <a href="{{ url_for('categories.add_category') }}" class="btn btn-primary">添加分类</a>
+    {% endif %}
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>分类编号</th>
+            <th>分类名称</th>
+            <th>馆藏位置</th>
+            <th>备注</th>
+            {% if session.get('admin_id') %}
+            <th>操作</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in categories %}
+        <tr>
+            <td><code>{{ c.cat_id }}</code></td>
+            <td>{{ c.cat_name }}</td>
+            <td>{{ c.location or '-' }}</td>
+            <td>{{ c.remark or '-' }}</td>
+            {% if session.get('admin_id') %}
+            <td class="actions">
+                <a href="{{ url_for('categories.edit_category', cat_id=c.cat_id) }}" class="btn btn-sm btn-outline">编辑</a>
+                <form method="POST" action="{{ url_for('categories.delete_category', cat_id=c.cat_id) }}" style="display:inline" onsubmit="return confirm('确认删除该分类？')">
+                    <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                </form>
+            </td>
+            {% endif %}
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="{% if session.get('admin_id') %}5{% else %}4{% endif %}" class="empty">暂无分类数据</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}添加分类{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h2>添加分类</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="cat_id">分类编号 *</label>
+            <input type="text" id="cat_id" name="cat_id" required placeholder="如TP3（中图法分类号）">
+        </div>
+        <div class="form-group">
+            <label for="cat_name">分类名称 *</label>
+            <input type="text" id="cat_name" name="cat_name" required placeholder="如计算机技术">
+        </div>
+        <div class="form-group">
+            <label for="location">馆藏位置</label>
+            <input type="text" id="location" name="location" placeholder="如A区3排">
+        </div>
+        <div class="form-group">
+            <label for="remark">备注</label>
+            <input type="text" id="remark" name="remark" placeholder="备注信息">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('categories.list_categories') }}" class="btn btn-outline">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}添加图书{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h2>添加图书</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="isbn">ISBN *</label>
+            <input type="text" id="isbn" name="isbn" required placeholder="图书ISBN编号">
+        </div>
+        <div class="form-group">
+            <label for="title">书名 *</label>
+            <input type="text" id="title" name="title" required placeholder="图书名称">
+        </div>
+        <div class="form-group">
+            <label for="author">作者</label>
+            <input type="text" id="author" name="author" placeholder="作者">
+        </div>
+        <div class="form-group">
+            <label for="publisher">出版社</label>
+            <input type="text" id="publisher" name="publisher" placeholder="出版社">
+        </div>
+        <div class="form-group">
+            <label for="pub_year">出版年份</label>
+            <input type="number" id="pub_year" name="pub_year" placeholder="如2020">
+        </div>
+        <div class="form-group">
+            <label for="cat_id">分类 *</label>
+            <select id="cat_id" name="cat_id" required>
+                <option value="">请选择分类</option>
+                {% for c in categories %}
+                <option value="{{ c.cat_id }}">{{ c.cat_name }} ({{ c.cat_id }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="total_stock">库存数量</label>
+            <input type="number" id="total_stock" name="total_stock" value="1" min="0">
+        </div>
+        <div class="form-group">
+            <label for="shelf_location">架位号</label>
+            <input type="text" id="shelf_location" name="shelf_location" placeholder="如A-01">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('books.list_books') }}" class="btn btn-outline">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

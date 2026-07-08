@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}分类借阅排行{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>分类借阅频率排行</h2>
+</div>
+
+<table class="table">
+    <thead>
+        <tr><th>排名</th><th>分类编号</th><th>分类名称</th><th>借阅次数</th></tr>
+    </thead>
+    <tbody>
+        {% for c in cat_heat %}
+        <tr>
+            <td><strong>#{{ loop.index }}</strong></td>
+            <td><code>{{ c.cat_id }}</code></td>
+            <td>{{ c.cat_name }}</td>
+            <td>{{ c.borrow_count }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">暂无借阅数据</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

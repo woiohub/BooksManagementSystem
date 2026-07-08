@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}首页 - 图书借阅管理系统{% endblock %}
+{% block content %}
+<div class="hero">
+    <h2>欢迎使用图书借阅管理系统</h2>
+    <p>支持图书借阅、归还、用户管理、统计分析等功能</p>
+</div>
+
+<div class="quick-actions">
+    <div class="action-card">
+        <h3>借阅图书</h3>
+        <p>为用户办理图书借阅，自动计算应还日期</p>
+        <a href="{{ url_for('borrow.borrow_page') }}" class="btn btn-primary">立即借阅</a>
+    </div>
+    <div class="action-card">
+        <h3>归还图书</h3>
+        <p>办理图书归还，自动计算超期违约金</p>
+        <a href="{{ url_for('borrow.return_page') }}" class="btn btn-primary">立即归还</a>
+    </div>
+    <div class="action-card">
+        <h3>借阅记录</h3>
+        <p>查看所有借阅记录，筛选借出/归还状态</p>
+        <a href="{{ url_for('borrow.records') }}" class="btn btn-primary">查看记录</a>
+    </div>
+    <div class="action-card">
+        <h3>数据统计</h3>
+        <p>查看图书热度、分类排行、用户借阅排行</p>
+        <a href="{{ url_for('stats.dashboard') }}" class="btn btn-primary">查看统计</a>
+    </div>
+</div>
+
+{% if session.get('admin_id') %}
+<div class="admin-panel">
+    <h3>管理面板</h3>
+    <div class="admin-links">
+        <a href="{{ url_for('users.list_users') }}" class="btn btn-outline">用户管理</a>
+        <a href="{{ url_for('books.list_books') }}" class="btn btn-outline">图书管理</a>
+        <a href="{{ url_for('categories.list_categories') }}" class="btn btn-outline">分类管理</a>
+        <a href="{{ url_for('borrow.overdue') }}" class="btn btn-outline">超期未还</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

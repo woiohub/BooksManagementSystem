@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}图书管理{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>图书管理</h2>
+    {% if session.get('admin_id') %}
+    <a href="{{ url_for('books.add_book') }}" class="btn btn-primary">添加图书</a>
+    {% endif %}
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<div class="search-bar">
+    <form method="GET" class="inline-form">
+        <input type="text" name="search" value="{{ search }}" placeholder="搜索书名或作者...">
+        <select name="cat_id">
+            <option value="">全部分类</option>
+            {% for c in categories %}
+            <option value="{{ c.cat_id }}" {% if cat_filter == c.cat_id %}selected{% endif %}>{{ c.cat_name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">搜索</button>
+        {% if search or cat_filter %}
+        <a href="{{ url_for('books.list_books') }}" class="btn btn-outline">清除</a>
+        {% endif %}
+    </form>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>ISBN</th>
+            <th>书名</th>
+            <th>作者</th>
+            <th>出版社</th>
+            <th>分类</th>
+            <th>总库存</th>
+            <th>可借</th>
+            <th>架位</th>
+            {% if session.get('admin_id') %}
+            <th>操作</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for b in books %}
+        <tr class="{% if b.available_stock == 0 %}out-of-stock{% endif %}">
+            <td>{{ b.book_id }}</td>
+            <td>{{ b.isbn }}</td>
+            <td>{{ b.title }}</td>
+            <td>{{ b.author or '-' }}</td>
+            <td>{{ b.publisher or '-' }}</td>
+            <td><span class="badge badge-cat">{{ b.category.cat_name }}</span></td>
+            <td>{{ b.total_stock }}</td>
+            <td>{{ b.available_stock }}</td>
+            <td>{{ b.shelf_location or '-' }}</td>
+            {% if session.get('admin_id') %}
+            <td class="actions">
+                <a href="{{ url_for('books.edit_book', book_id=b.book_id) }}" class="btn btn-sm btn-outline">编辑</a>
+                <form method="POST" action="{{ url_for('books.delete_book', book_id=b.book_id) }}" style="display:inline" onsubmit="return confirm('确认删除该图书？')">
+                    <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                </form>
+            </td>
+            {% endif %}
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="{% if session.get('admin_id') %}10{% else %}9{% endif %}" class="empty">暂无图书数据</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}借阅图书{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h2>借阅图书</h2>
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('borrow.do_borrow') }}" class="form">
+        <div class="form-group">
+            <label for="user_id">用户ID</label>
+            <input type="number" id="user_id" name="user_id" required placeholder="输入用户ID（如1）">
+        </div>
+        <div class="form-group">
+            <label for="book_id">图书ID</label>
+            <input type="number" id="book_id" name="book_id" required placeholder="输入图书ID（如1）">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">确认借阅</button>
+        </div>
+    </form>
+
+    <div class="info-box">
+        <h4>用户类型借阅权限</h4>
+        <table class="table table-sm">
+            <thead>
+                <tr><th>用户类型</th><th>最大可借</th><th>借阅期限</th><th>日违约金</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>教师</td><td>20本</td><td>60天</td><td>0.50元</td></tr>
+                <tr><td>研究生</td><td>15本</td><td>45天</td><td>0.30元</td></tr>
+                <tr><td>本科生</td><td>10本</td><td>30天</td><td>0.20元</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="info-box">
+        <p><a href="{{ url_for('borrow.quick_search') }}">快速查找用户和图书</a></p>
+    </div>
+</div>
+{% endblock %}

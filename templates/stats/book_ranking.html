@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}图书借阅排行{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>图书借阅热度排行</h2>
+    <div class="header-actions">
+        <a href="?top_n=5" class="btn btn-sm {% if top_n == 5 %}btn-primary{% else %}btn-outline{% endif %}">TOP 5</a>
+        <a href="?top_n=10" class="btn btn-sm {% if top_n == 10 %}btn-primary{% else %}btn-outline{% endif %}">TOP 10</a>
+        <a href="?top_n=20" class="btn btn-sm {% if top_n == 20 %}btn-primary{% else %}btn-outline{% endif %}">TOP 20</a>
+    </div>
+</div>
+
+<table class="table">
+    <thead>
+        <tr><th>排名</th><th>书名</th><th>作者</th><th>借阅次数</th></tr>
+    </thead>
+    <tbody>
+        {% for b in book_heat %}
+        <tr>
+            <td><strong>#{{ loop.index }}</strong></td>
+            <td>{{ b.title }}</td>
+            <td>{{ b.author or '-' }}</td>
+            <td>
+                <span class="heat-bar" style="width: {{ (b.borrow_count / book_heat[0].borrow_count * 100)|int if book_heat else 0 }}%"></span>
+                {{ b.borrow_count }}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">暂无借阅数据</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
