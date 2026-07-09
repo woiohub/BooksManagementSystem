@@ -6,23 +6,24 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/user_login', methods=['GET', 'POST'])
 def user_login():
-    """用户登录 - 仅需用户ID"""
+    """用户登录 - 用户ID+密码"""
     if request.method == 'POST':
         user_id = request.form.get('user_id', '').strip()
+        password = request.form.get('password', '').strip()
 
-        if not user_id:
-            return render_template('user_login.html', error='请输入用户ID')
+        if not user_id or not password:
+            return render_template('user_login.html', error='请输入用户ID和密码')
 
         # 输入验证：用户ID必须为正整数
         if not user_id.isdigit() or int(user_id) <= 0:
             return render_template('user_login.html', error='用户ID必须为正整数')
 
-        user = db.session.get(User, int(user_id))
+        user = User.query.filter_by(user_id=int(user_id), password=password).first()
         if user:
             session['user_id'] = user.user_id
             session['user_name'] = user.name
             return redirect(url_for('index'))
-        return render_template('user_login.html', error='用户不存在')
+        return render_template('user_login.html', error='用户ID或密码错误')
 
     return render_template('user_login.html')
 
