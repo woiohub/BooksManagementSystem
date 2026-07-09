@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from models import db, Book, Category
+from utils.decorators import admin_required
 
 books_bp = Blueprint('books', __name__)
 
 
 @books_bp.route('/')
+@admin_required
 def list_books():
     search = request.args.get('search', '').strip()
     cat_filter = request.args.get('cat_id', '').strip()
@@ -19,6 +21,7 @@ def list_books():
 
 
 @books_bp.route('/add', methods=['GET', 'POST'])
+@admin_required
 def add_book():
     if request.method == 'POST':
         isbn = request.form.get('isbn', '').strip()
@@ -50,6 +53,7 @@ def add_book():
 
 
 @books_bp.route('/edit/<int:book_id>', methods=['GET', 'POST'])
+@admin_required
 def edit_book(book_id):
     book = db.session.get(Book, book_id)
     if not book:
@@ -79,6 +83,7 @@ def edit_book(book_id):
 
 
 @books_bp.route('/delete/<int:book_id>', methods=['POST'])
+@admin_required
 def delete_book(book_id):
     book = db.session.get(Book, book_id)
     if book:
@@ -90,3 +95,36 @@ def delete_book(book_id):
         db.session.delete(book)
         db.session.commit()
     return redirect(url_for('books.list_books'))
+
+
+@books_bp.route('/search')
+def search():
+    """图书搜索页面 - 支持多维度搜索"""
+    book_id = request.args.get('book_id', '').strip()
+    isbn = request.args.get('isbn', '').strip()
+    title = request.args.get('title', '').strip()
+    author = request.args.get('author', '').strip()
+    publisher = request.args.get('publisher', '').strip()
+    cat_id = request.args.get('cat_id', '').strip()
+
+    q = Book.query.join(Category)
+
+    if book_id:
+        q = q.filter(Book.book_id == int(book_id))
+    if isbn:
+        q = q.filter(Book.isbn.contains(isbn))
+    if title:
+        q = q.filter(Book.title.contains(title))
+    if author:
+        q = q.filter(Book.author.contains(author))
+    if publisher:
+        q = q.filter(Book.publisher.contains(publisher))
+    if cat_id:
+        q = q.filter(Book.cat_id == cat_id)
+
+    books = q.order_by(Book.book_id).all()
+    categories = Category.query.all()
+
+    return render_template('books/search.html', books=books, categories=categories,
+                           book_id=book_id, isbn=isbn, title=title,
+                           author=author, publisher=publisher, cat_id=cat_id)

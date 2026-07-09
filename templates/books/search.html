@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}图书搜索 - 图书借阅管理系统{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <h2>图书搜索</h2>
+    <form method="GET" class="search-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="book_id">图书ID</label>
+                <input type="number" id="book_id" name="book_id" value="{{ book_id }}" placeholder="精确匹配">
+            </div>
+            <div class="form-group">
+                <label for="isbn">ISBN</label>
+                <input type="text" id="isbn" name="isbn" value="{{ isbn }}" placeholder="模糊匹配">
+            </div>
+            <div class="form-group">
+                <label for="title">书名</label>
+                <input type="text" id="title" name="title" value="{{ title }}" placeholder="模糊匹配">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="author">作者</label>
+                <input type="text" id="author" name="author" value="{{ author }}" placeholder="模糊匹配">
+            </div>
+            <div class="form-group">
+                <label for="publisher">出版社</label>
+                <input type="text" id="publisher" name="publisher" value="{{ publisher }}" placeholder="模糊匹配">
+            </div>
+            <div class="form-group">
+                <label for="cat_id">分类</label>
+                <select id="cat_id" name="cat_id">
+                    <option value="">全部分类</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.cat_id }}" {% if cat_id == cat.cat_id %}selected{% endif %}>{{ cat.cat_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">搜索</button>
+            <a href="{{ url_for('books.search') }}" class="btn btn-secondary">重置</a>
+        </div>
+    </form>
+</div>
+
+<div class="search-results">
+    <h3>搜索结果 ({{ books|length }} 条记录)</h3>
+    {% if books %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>图书ID</th>
+                <th>ISBN</th>
+                <th>书名</th>
+                <th>作者</th>
+                <th>出版社</th>
+                <th>分类</th>
+                <th>总库存</th>
+                <th>可借数量</th>
+                <th>架位号</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+            <tr>
+                <td>{{ book.book_id }}</td>
+                <td>{{ book.isbn }}</td>
+                <td>{{ book.title }}</td>
+                <td>{{ book.author }}</td>
+                <td>{{ book.publisher }}</td>
+                <td>{{ book.category.cat_name }}</td>
+                <td>{{ book.total_stock }}</td>
+                <td>{{ book.available_stock }}</td>
+                <td>{{ book.shelf_location }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">未找到匹配的图书</p>
+    {% endif %}
+</div>
+
+<style>
+.search-container {
+    margin-bottom: 30px;
+}
+.search-form {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+}
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 15px;
+}
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+.form-group label {
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+.form-group input,
+.form-group select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.form-actions {
+    margin-top: 20px;
+}
+.search-results {
+    margin-top: 30px;
+}
+.search-results h3 {
+    margin-bottom: 15px;
+}
+.empty {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+</style>
+{% endblock %}

@@ -14,9 +14,13 @@
             </h1>
             <nav class="nav">
                 <a href="{{ url_for('index') }}">首页</a>
+                {% if session.get('user_id') %}
                 <a href="{{ url_for('borrow.borrow_page') }}">借阅图书</a>
                 <a href="{{ url_for('borrow.return_page') }}">归还图书</a>
                 <a href="{{ url_for('borrow.records') }}">借阅记录</a>
+                <a href="{{ url_for('books.search') }}">图书搜索</a>
+                {% endif %}
+                {% if session.get('admin_id') %}
                 <div class="dropdown">
                     <a href="#" class="dropbtn">管理</a>
                     <div class="dropdown-content">
@@ -34,11 +38,13 @@
                         <a href="{{ url_for('stats.user_ranking') }}">用户排行</a>
                     </div>
                 </div>
-                {% if session.get('admin_id') %}
                 <span class="admin-badge">管理员: {{ session.get('admin_username') }}</span>
                 <a href="{{ url_for('auth.logout') }}">退出</a>
+                {% elif session.get('user_id') %}
+                <span class="user-badge">用户: {{ session.get('user_name') }}</span>
+                <a href="{{ url_for('auth.logout') }}">退出</a>
                 {% else %}
-                <a href="{{ url_for('auth.login') }}">管理员登录</a>
+                <a href="{{ url_for('auth.login') }}">登录</a>
                 {% endif %}
             </nav>
         </div>

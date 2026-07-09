@@ -1,16 +1,19 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from models import db, Category
+from utils.decorators import admin_required
 
 categories_bp = Blueprint('categories', __name__)
 
 
 @categories_bp.route('/')
+@admin_required
 def list_categories():
     cats = Category.query.order_by(Category.cat_id).all()
     return render_template('categories/list.html', categories=cats)
 
 
 @categories_bp.route('/add', methods=['GET', 'POST'])
+@admin_required
 def add_category():
     if request.method == 'POST':
         cat_id = request.form.get('cat_id', '').strip()
@@ -33,6 +36,7 @@ def add_category():
 
 
 @categories_bp.route('/edit/<cat_id>', methods=['GET', 'POST'])
+@admin_required
 def edit_category(cat_id):
     cat = db.session.get(Category, cat_id)
     if not cat:
@@ -49,6 +53,7 @@ def edit_category(cat_id):
 
 
 @categories_bp.route('/delete/<cat_id>', methods=['POST'])
+@admin_required
 def delete_category(cat_id):
     cat = db.session.get(Category, cat_id)
     if cat:

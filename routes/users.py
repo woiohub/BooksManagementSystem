@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from models import db, User
+from utils.decorators import admin_required
 
 users_bp = Blueprint('users', __name__)
 
@@ -13,6 +14,7 @@ USER_TYPE_NAMES = list(USER_TYPE_QUOTAS.keys())
 
 
 @users_bp.route('/')
+@admin_required
 def list_users():
     search = request.args.get('search', '').strip()
     q = User.query
@@ -23,6 +25,7 @@ def list_users():
 
 
 @users_bp.route('/add', methods=['GET', 'POST'])
+@admin_required
 def add_user():
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -54,6 +57,7 @@ def add_user():
 
 
 @users_bp.route('/edit/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
 def edit_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
@@ -79,6 +83,7 @@ def edit_user(user_id):
 
 
 @users_bp.route('/delete/<int:user_id>', methods=['POST'])
+@admin_required
 def delete_user(user_id):
     user = db.session.get(User, user_id)
     if user:

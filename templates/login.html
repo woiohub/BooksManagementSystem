@@ -1,25 +1,64 @@
 {% extends "base.html" %}
-{% block title %}管理员登录 - 图书借阅管理系统{% endblock %}
+
+{% block title %}登录选择 - 图书借阅管理系统{% endblock %}
+
 {% block content %}
-<div class="form-container">
-    <h2>管理员登录</h2>
-    {% if error %}
-    <div class="alert alert-error">{{ error }}</div>
-    {% endif %}
-    <form method="POST" class="form">
-        <div class="form-group">
-            <label for="username">用户名</label>
-            <input type="text" id="username" name="username" required placeholder="请输入管理员用户名">
+<div class="login-container">
+    <h2>请选择登录方式</h2>
+    <div class="login-options">
+        <div class="login-card">
+            <h3>用户登录</h3>
+            <p>使用用户ID登录，进行借阅、归还等操作</p>
+            <a href="{{ url_for('auth.user_login') }}" class="btn btn-primary">用户登录</a>
         </div>
-        <div class="form-group">
-            <label for="password">密码</label>
-            <input type="password" id="password" name="password" required placeholder="请输入密码">
+        <div class="login-card">
+            <h3>管理员登录</h3>
+            <p>使用管理员账号登录，进行系统管理</p>
+            <a href="{{ url_for('auth.admin_login') }}" class="btn btn-primary">管理员登录</a>
         </div>
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">登录</button>
-            <a href="{{ url_for('index') }}" class="btn btn-outline">返回首页</a>
-        </div>
-    </form>
-    
+    </div>
 </div>
+
+<style>
+.login-container {
+    max-width: 800px;
+    margin: 50px auto;
+    text-align: center;
+}
+.login-container h2 {
+    margin-bottom: 40px;
+    color: #333;
+}
+.login-options {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+}
+.login-card {
+    flex: 1;
+    max-width: 350px;
+    padding: 30px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    transition: all 0.3s;
+}
+.login-card:hover {
+    border-color: #4CAF50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.login-card h3 {
+    color: #4CAF50;
+    margin-bottom: 15px;
+}
+.login-card p {
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+.login-card .btn {
+    display: inline-block;
+    width: 100%;
+}
+</style>
 {% endblock %}

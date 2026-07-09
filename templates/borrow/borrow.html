@@ -3,20 +3,25 @@
 {% block content %}
 <div class="form-container">
     <h2>借阅图书</h2>
+    <div class="user-info">
+        <p>当前登录用户：<strong>{{ session.get('user_name') }}</strong> (ID: {{ session.get('user_id') }})</p>
+        <p>可借数量：{{ user.max_borrow - user.borrowed_count }} / {{ user.max_borrow }} 本</p>
+    </div>
+
     {% if error %}
     <div class="alert alert-error">{{ error }}</div>
     {% endif %}
     {% if success %}
     <div class="alert alert-success">{{ success }}</div>
     {% endif %}
+
     <form method="POST" action="{{ url_for('borrow.do_borrow') }}" class="form">
         <div class="form-group">
-            <label for="user_id">用户ID</label>
-            <input type="number" id="user_id" name="user_id" required placeholder="输入用户ID（如1）">
-        </div>
-        <div class="form-group">
             <label for="book_id">图书ID</label>
-            <input type="number" id="book_id" name="book_id" required placeholder="输入图书ID（如1）">
+            <div class="input-with-button">
+                <input type="number" id="book_id" name="book_id" required placeholder="输入图书ID">
+                <a href="{{ url_for('books.search') }}" class="btn btn-secondary">查看/搜索图书</a>
+            </div>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">确认借阅</button>
@@ -36,9 +41,25 @@
             </tbody>
         </table>
     </div>
-
-    <div class="info-box">
-        <p><a href="{{ url_for('borrow.quick_search') }}">快速查找用户和图书</a></p>
-    </div>
 </div>
+
+<style>
+.user-info {
+    background: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.user-info p {
+    margin: 5px 0;
+}
+.input-with-button {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.input-with-button input {
+    flex: 1;
+}
+</style>
 {% endblock %}

@@ -24,8 +24,10 @@
     <thead>
         <tr>
             <th>记录ID</th>
-            <th>图书</th>
-            <th>用户</th>
+            <th>图书名称</th>
+            <th>图书ID</th>
+            <th>用户名称</th>
+            <th>用户ID</th>
             <th>借阅日期</th>
             <th>应还日期</th>
             <th>归还日期</th>
@@ -38,23 +40,25 @@
         <tr class="{% if r.status == 0 and r.is_overdue %}overdue{% endif %}">
             <td>{{ r.record_id }}</td>
             <td>{{ r.book.title }}</td>
+            <td>{{ r.book_id }}</td>
             <td>{{ r.user.name }}</td>
-            <td>{{ r.borrow_date }}</td>
-            <td>{{ r.due_date }}</td>
-            <td>{{ r.return_date or '-' }}</td>
+            <td>{{ r.user_id }}</td>
+            <td>{{ r.borrow_date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ r.due_date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ r.return_date.strftime('%Y-%m-%d') if r.return_date else '-' }}</td>
             <td>{{ '%.2f'|format(r.penalty|float) }}</td>
             <td>
                 {% if r.status == 0 %}
-                <span class="badge badge-borrowed">借出中</span>
+                <span class="badge badge-warning">借出中</span>
                 {% if r.is_overdue %}<span class="badge badge-danger">超期</span>{% endif %}
                 {% else %}
-                <span class="badge badge-returned">已归还</span>
+                <span class="badge badge-success">已归还</span>
                 {% endif %}
             </td>
         </tr>
         {% else %}
         <tr>
-            <td colspan="8" class="empty">暂无借阅记录</td>
+            <td colspan="10" class="empty">暂无借阅记录</td>
         </tr>
         {% endfor %}
     </tbody>

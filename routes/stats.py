@@ -1,11 +1,13 @@
 from datetime import date
 from flask import Blueprint, render_template, request
 from services.stats_service import StatsService
+from utils.decorators import admin_required
 
 stats_bp = Blueprint('stats', __name__)
 
 
 @stats_bp.route('/')
+@admin_required
 def dashboard():
     overview = StatsService.get_overview_stats()
     book_heat = StatsService.get_book_heat_ranking(top_n=10)
@@ -17,6 +19,7 @@ def dashboard():
 
 
 @stats_bp.route('/books')
+@admin_required
 def book_ranking():
     top_n = request.args.get('top_n', 10, type=int)
     book_heat = StatsService.get_book_heat_ranking(top_n=top_n)
@@ -24,12 +27,14 @@ def book_ranking():
 
 
 @stats_bp.route('/categories')
+@admin_required
 def category_ranking():
     cat_heat = StatsService.get_category_heat_ranking()
     return render_template('stats/category_ranking.html', cat_heat=cat_heat)
 
 
 @stats_bp.route('/users')
+@admin_required
 def user_ranking():
     top_n = request.args.get('top_n', 10, type=int)
     user_rank = StatsService.get_user_borrow_ranking(top_n=top_n)
