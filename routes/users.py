@@ -1,6 +1,9 @@
+import logging
 from flask import Blueprint, render_template, request, redirect, url_for
 from models import db, User
 from utils.decorators import admin_required
+
+logger = logging.getLogger(__name__)
 
 users_bp = Blueprint('users', __name__)
 
@@ -43,14 +46,21 @@ def add_user():
                                    quotas=USER_TYPE_QUOTAS)
 
         q = USER_TYPE_QUOTAS[user_type]
-        user = User(
-            name=name, password=password, user_type=user_type,
-            max_borrow=q['max_borrow'], days_limit=q['days_limit'],
-            penalty_per_day=q['penalty_per_day']
-        )
-        db.session.add(user)
-        db.session.commit()
-        return redirect(url_for('users.list_users'))
+        try:
+            user = User(
+                name=name, password=password, user_type=user_type,
+                max_borrow=q['max_borrow'], days_limit=q['days_limit'],
+                penalty_per_day=q['penalty_per_day']
+            )
+            db.session.add(user)
+            db.session.commit()
+            return redirect(url_for('users.list_users'))
+        except Exception:
+            db.session.rollback()
+            logger.exception('添加用户异常: name=%s', name)
+            return render_template('users/add.html', error='添加用户失败，请稍后重试',
+                                   user_type_names=USER_TYPE_NAMES,
+                                   quotas=USER_TYPE_QUOTAS)
 
     return render_template('users/add.html', user_type_names=USER_TYPE_NAMES,
                            quotas=USER_TYPE_QUOTAS)
@@ -64,7 +74,14 @@ def edit_user(user_id):
         return redirect(url_for('users.list_users'))
 
     if request.method == 'POST':
-        user.name = request.form.get('name', '').strip()
+        name = request.form.get('name', '').strip()
+        if not name:
+            return render_template('users/edit.html', user=user,
+                                   user_type_names=USER_TYPE_NAMES,
+                                   quotas=USER_TYPE_QUOTAS,
+                                   error='用户名不能为空')
+
+        user.name = name
         new_password = request.form.get('password', '').strip()
         if new_password:
             user.password = new_password
@@ -74,8 +91,17 @@ def edit_user(user_id):
             user.max_borrow = request.form.get('max_borrow', 0, type=int)
             user.days_limit = request.form.get('days_limit', 0, type=int)
             user.penalty_per_day = request.form.get('penalty_per_day', 0, type=float)
-        db.session.commit()
-        return redirect(url_for('users.list_users'))
+
+        try:
+            db.session.commit()
+            return redirect(url_for('users.list_users'))
+        except Exception:
+            db.session.rollback()
+            logger.exception('编辑用户异常: user_id=%s', user_id)
+            return render_template('users/edit.html', user=user,
+                                   user_type_names=USER_TYPE_NAMES,
+                                   quotas=USER_TYPE_QUOTAS,
+                                   error='编辑用户失败，请稍后重试')
 
     return render_template('users/edit.html', user=user,
                            user_type_names=USER_TYPE_NAMES,
@@ -91,6 +117,13 @@ def delete_user(user_id):
             return render_template('users/list.html',
                                    users=User.query.all(),
                                    error='该用户仍有未归还图书，无法删除')
-        db.session.delete(user)
-        db.session.commit()
+        try:
+            db.session.delete(user)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            logger.exception('删除用户异常: user_id=%s', user_id)
+            return render_template('users/list.html',
+                                   users=User.query.all(),
+                                   error='删除用户失败，请稍后重试')
     return redirect(url_for('users.list_users'))

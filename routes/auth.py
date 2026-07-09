@@ -13,6 +13,10 @@ def user_login():
         if not user_id:
             return render_template('user_login.html', error='请输入用户ID')
 
+        # 输入验证：用户ID必须为正整数
+        if not user_id.isdigit() or int(user_id) <= 0:
+            return render_template('user_login.html', error='用户ID必须为正整数')
+
         user = db.session.get(User, int(user_id))
         if user:
             session['user_id'] = user.user_id
@@ -29,6 +33,9 @@ def admin_login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
+
+        if not username or not password:
+            return render_template('admin_login.html', error='请输入用户名和密码')
 
         admin = Admin.query.filter_by(username=username, password=password).first()
         if admin:

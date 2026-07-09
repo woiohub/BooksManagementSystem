@@ -3,6 +3,10 @@
 {% block title %}图书搜索 - 图书借阅管理系统{% endblock %}
 
 {% block content %}
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
 <div class="search-container">
     <h2>图书搜索</h2>
     <form method="GET" class="search-form">

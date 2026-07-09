@@ -5,6 +5,10 @@
     <h2>借阅记录</h2>
 </div>
 
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
 <div class="search-bar">
     <form method="GET" class="inline-form">
         <input type="number" name="user_id" value="{{ user_id }}" placeholder="用户ID筛选...">
