@@ -113,11 +113,17 @@ def edit_user(user_id):
 def delete_user(user_id):
     user = db.session.get(User, user_id)
     if user:
+        # 检查是否有未归还的图书
         if user.borrowed_count > 0:
             return render_template('users/list.html',
                                    users=User.query.all(),
                                    error='该用户仍有未归还图书，无法删除')
         try:
+            # 先删除该用户的所有借阅记录（包括已归还的）
+            from models import BorrowRecord
+            BorrowRecord.query.filter_by(user_id=user_id).delete()
+            
+            # 再删除用户
             db.session.delete(user)
             db.session.commit()
         except Exception:
