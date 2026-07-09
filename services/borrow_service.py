@@ -37,12 +37,13 @@ class BorrowService:
             status=0
         )
 
-        # 更新库存和借阅计数
-        book.available_stock -= 1
-        user.borrowed_count += 1
-
+        # 由触发器 trg_BorrowRecord_Sync 自动更新 book.available_stock 和 user.borrowed_count
         db.session.add(record)
         db.session.commit()
+
+        # 刷新对象以获取触发器更新后的最新值
+        db.session.refresh(book)
+        db.session.refresh(user)
 
         return True, f'借阅成功！应还日期：{due_date.strftime("%Y-%m-%d")}'
 
@@ -73,14 +74,14 @@ class BorrowService:
         record.status = 1
         record.penalty = penalty
 
-        # 更新库存和借阅计数
-        book = db.session.get(Book, record.book_id)
-        book.available_stock += 1
-
-        user = db.session.get(User, record.user_id)
-        user.borrowed_count -= 1
-
+        # 由触发器 trg_BorrowRecord_Sync 自动更新 book.available_stock 和 user.borrowed_count
         db.session.commit()
+
+        # 刷新对象以获取触发器更新后的最新值
+        book = db.session.get(Book, record.book_id)
+        user = db.session.get(User, record.user_id)
+        db.session.refresh(book)
+        db.session.refresh(user)
 
         # 返回结果
         if penalty > 0:
