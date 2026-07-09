@@ -65,7 +65,7 @@ class User(db.Model):
 class BorrowRecord(db.Model):
     """借阅记录模型"""
     __tablename__ = 'BorrowRecord'
-    __mapper_args__ = {'implicit_returning': False}
+    __table_args__ = {'implicit_returning': False}
 
     record_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     book_id = db.Column(db.Integer, db.ForeignKey('Book.book_id'), nullable=False, index=True)
