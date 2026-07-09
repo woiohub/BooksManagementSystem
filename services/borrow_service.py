@@ -58,33 +58,31 @@ class BorrowService:
         if record.status == 1:
             return False, '归还失败：该图书已归还'
 
-        # 计算归还日期和违约金
+        # 计算归还日期和超期天数（仅用于前端展示，违约金由触发器自动计算）
         return_date = date.today()
-        penalty = 0.0
         overdue_days = 0
 
         if return_date > record.due_date:
-            user = db.session.get(User, record.user_id)
             overdue_days = (return_date - record.due_date).days
-            penalty = overdue_days * float(user.penalty_per_day)
-            user.penalty_total = float(user.penalty_total) + penalty
 
-        # 更新记录状态
+        # 更新记录状态（违约金由触发器自动计算并写入 penalty 字段）
         record.return_date = return_date
         record.status = 1
-        record.penalty = penalty
 
-        # 由触发器 trg_BorrowRecord_Sync 自动更新 book.available_stock 和 user.borrowed_count
+        # 由触发器 trg_BorrowRecord_Sync 自动更新：
+        # - book.available_stock +1
+        # - user.borrowed_count -1
+        # - 若超期，自动计算违约金并更新 BorrowRecord.penalty 和 User.penalty_total
         db.session.commit()
 
-        # 刷新对象以获取触发器更新后的最新值
-        book = db.session.get(Book, record.book_id)
-        user = db.session.get(User, record.user_id)
-        db.session.refresh(book)
-        db.session.refresh(user)
+        # 刷新记录以获取触发器更新后的违约金等最新值
+        db.session.refresh(record)
+
+        # 从触发器更新后的记录中获取违约金
+        penalty = float(record.penalty or 0)
 
         # 返回结果
-        if penalty > 0:
+        if overdue_days > 0:
             return True, f'归还成功！超期{overdue_days}天，违约金{penalty:.2f}元'
         else:
             return True, '归还成功！'
