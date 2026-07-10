@@ -39,11 +39,13 @@
                     </div>
                 </div>
                 <span class="admin-badge">管理员: {{ session.get('admin_username') }}</span>
-                <a href="{{ url_for('auth.logout') }}">退出</a>
-                {% elif session.get('user_id') %}
+                <a href="{{ url_for('auth.logout_admin') }}" class="logout-link">管理员退出</a>
+                {% endif %}
+                {% if session.get('user_id') %}
                 <span class="user-badge">用户: {{ session.get('user_name') }}</span>
-                <a href="{{ url_for('auth.logout') }}">退出</a>
-                {% else %}
+                <a href="{{ url_for('auth.logout_user') }}" class="logout-link">用户退出</a>
+                {% endif %}
+                {% if not session.get('admin_id') and not session.get('user_id') %}
                 <a href="{{ url_for('auth.login') }}">登录</a>
                 {% endif %}
             </nav>

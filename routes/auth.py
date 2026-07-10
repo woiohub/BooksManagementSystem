@@ -58,3 +58,19 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+
+@auth_bp.route('/logout_admin')
+def logout_admin():
+    """管理员退出登录"""
+    session.pop('admin_id', None)
+    session.pop('admin_username', None)
+    return redirect(url_for('index'))
+
+
+@auth_bp.route('/logout_user')
+def logout_user():
+    """用户退出登录"""
+    session.pop('user_id', None)
+    session.pop('user_name', None)
+    return redirect(url_for('index'))
