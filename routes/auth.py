@@ -54,6 +54,76 @@ def login():
     return render_template('login.html')
 
 
+# 用户类型配额配置
+USER_TYPE_CONFIG = {
+    '教师': {'max_borrow': 20, 'days_limit': 60, 'penalty_per_day': 0.50},
+    '研究生': {'max_borrow': 15, 'days_limit': 45, 'penalty_per_day': 0.30},
+    '本科生': {'max_borrow': 10, 'days_limit': 30, 'penalty_per_day': 0.20},
+}
+
+
+@auth_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    """用户注册"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        user_type = request.form.get('user_type', '').strip()
+
+        # 表单验证
+        if not name or not email or not password or not confirm_password or not user_type:
+            return render_template('register.html', error='请填写所有必填字段')
+
+        # 密码验证
+        if password != confirm_password:
+            return render_template('register.html', error='两次输入的密码不一致')
+
+        if len(password) < 6:
+            return render_template('register.html', error='密码长度不能少于6位')
+
+        # 邮箱格式验证
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return render_template('register.html', error='邮箱格式不正确')
+
+        # 用户类型验证
+        if user_type not in USER_TYPE_CONFIG:
+            return render_template('register.html', error='请选择有效的用户类型')
+
+        # 检查邮箱是否已注册
+        if User.query.filter_by(email=email).first():
+            return render_template('register.html', error='该邮箱已被注册')
+
+        # 获取用户类型配额
+        config = USER_TYPE_CONFIG[user_type]
+
+        try:
+            # 创建新用户
+            new_user = User(
+                name=name,
+                email=email,
+                password=password,
+                user_type=user_type,
+                max_borrow=config['max_borrow'],
+                days_limit=config['days_limit'],
+                penalty_per_day=config['penalty_per_day'],
+                borrowed_count=0,
+                penalty_total=0
+            )
+            db.session.add(new_user)
+            db.session.commit()
+
+            return render_template('register.html', success=f'注册成功！您的用户ID为：{new_user.user_id}，请牢记此ID用于登录。')
+        except Exception as e:
+            db.session.rollback()
+            return render_template('register.html', error=f'注册失败：{str(e)}')
+
+    return render_template('register.html')
+
+
 @auth_bp.route('/logout')
 def logout():
     session.clear()

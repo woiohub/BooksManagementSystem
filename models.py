@@ -43,6 +43,7 @@ class User(db.Model):
 
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
     user_type = db.Column(db.String(20), nullable=False)
     max_borrow = db.Column(db.Integer, nullable=False)

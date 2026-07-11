@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}用户注册{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">用户注册</h4>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                        <br><a href="{{ url_for('auth.user_login') }}" class="alert-link">点击这里登录</a>
+                    </div>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('auth.register') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">姓名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">邮箱 <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="form-text">用于登录和找回密码</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密码 <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                            <div class="form-text">密码长度至少6位</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">确认密码 <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user_type" class="form-label">用户类型 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="user_type" name="user_type" required>
+                                <option value="">请选择用户类型</option>
+                                <option value="本科生">本科生</option>
+                                <option value="研究生">研究生</option>
+                                <option value="教师">教师</option>
+                            </select>
+                            <div class="form-text">
+                                <small>
+                                    本科生：最多借阅10本，期限30天，违约金0.20元/天<br>
+                                    研究生：最多借阅15本，期限45天，违约金0.30元/天<br>
+                                    教师：最多借阅20本，期限60天，违约金0.50元/天
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">注册</button>
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">返回登录</a>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
