@@ -20,6 +20,10 @@
         <button type="submit" class="btn btn-primary">登录</button>
         <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">返回</a>
     </form>
+    <div style="text-align: center; margin-top: 15px;">
+        <span style="color: #666;">还没有账号？</span>
+        <a href="{{ url_for('auth.register') }}" style="color: #4CAF50; font-weight: 500;">注册新账号</a>
+    </div>
 </div>
 
 <style>
