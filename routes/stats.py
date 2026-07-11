@@ -1,5 +1,4 @@
 import logging
-from datetime import date
 from flask import Blueprint, render_template, request
 from services.stats_service import StatsService
 from utils.decorators import admin_required
