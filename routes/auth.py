@@ -67,13 +67,12 @@ def register():
     """用户注册"""
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
         confirm_password = request.form.get('confirm_password', '').strip()
         user_type = request.form.get('user_type', '').strip()
 
         # 表单验证
-        if not name or not email or not password or not confirm_password or not user_type:
+        if not name or not password or not confirm_password or not user_type:
             return render_template('register.html', error='请填写所有必填字段')
 
         # 密码验证
@@ -83,19 +82,13 @@ def register():
         if len(password) < 6:
             return render_template('register.html', error='密码长度不能少于6位')
 
-        # 邮箱格式验证
-        import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, email):
-            return render_template('register.html', error='邮箱格式不正确')
-
         # 用户类型验证
         if user_type not in USER_TYPE_CONFIG:
             return render_template('register.html', error='请选择有效的用户类型')
 
-        # 检查邮箱是否已注册
-        if User.query.filter_by(email=email).first():
-            return render_template('register.html', error='该邮箱已被注册')
+        # 检查姓名是否已注册
+        if User.query.filter_by(name=name).first():
+            return render_template('register.html', error='该姓名已被注册')
 
         # 获取用户类型配额
         config = USER_TYPE_CONFIG[user_type]
@@ -104,7 +97,6 @@ def register():
             # 创建新用户
             new_user = User(
                 name=name,
-                email=email,
                 password=password,
                 user_type=user_type,
                 max_borrow=config['max_borrow'],
